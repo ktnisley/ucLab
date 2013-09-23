@@ -1,0 +1,179 @@
+
+#define CLK 13    // PORTB5
+#define SPDAT 11  // PORTB3
+#define SW1 4     // PORTD4
+#define SW2 2     // PORTD2
+#define SPKA A2   // PORTC2
+#define SPKB 9    // PORTB1
+
+boolean isSw1Down, prevIsSw1Down = false, isSw1Up2Dn, isSw1Dn2Up;
+int beepPin;
+int prevBeepPin = 0;
+   
+//***********************************************************************************
+void setup()
+{
+  pinMode(SPDAT, OUTPUT);
+  pinMode(CLK, OUTPUT);
+  pinMode(SW1, INPUT_PULLUP);
+  pinMode(SW2, INPUT_PULLUP);
+  pinMode(SPKA, OUTPUT);
+  pinMode(SPKB, OUTPUT);
+ 
+  Serial.begin(9600);
+  Serial.println(F("SRB Speaker Drive Detect / DIP Switch Transfer"));
+}
+
+//***********************************************************************************
+void loop()
+{    
+  // Signal conditioning: Log switch states and transitions
+  prevIsSw1Down = isSw1Down;
+  isSw1Down = !digitalRead(SW1);  // convert switch active low to active high
+  isSw1Dn2Up = (isSw1Down && !prevIsSw1Down);
+  isSw1Up2Dn = (!isSw1Down && prevIsSw1Down);
+//  prevBeepPin = beepPin;
+  
+  //set speaker assignment
+  beepPin = fetchActiveBeepPin();
+  
+  //report speaker assignment only if changed AND only on switch press
+  Serial.println(isSw1Dn2Up);
+  if ((beepPin != prevBeepPin)){
+    if(isSw1Up2Dn){
+      displayBeepPin(beepPin);
+    }
+  }
+  
+  //tone only when SW1 is pushed
+  if (isSw1Down){
+   prevBeepPin = beepPin;
+   tone(beepPin,880);
+   if (beepPin != prevBeepPin){
+     displayBeepPin(beepPin);
+   }
+  }
+  else noTone(beepPin);
+ 
+  delay(100);
+    
+}
+
+//***********************************************************************************
+void transferSwitch2Console(void)
+{
+  // Clear accumulator byte 'accum' in code.
+  // Load parallel shift register in hardware.
+  // ----------------------------------------------------
+  // Loop 7X: 
+  //    read parallel MSB (PSDAT) into boolean variable bitPSDAT
+  //    if bitPSDAT is HIGH, bitwise OR accum LSB HIGH
+  //    else leave accum LSB LOW
+  //    shift accum left 1 bit (accum = accum << 1 or accum *= 2)
+  //    pulse CLK to move next bit to parallel register MSB
+  // ----------------------------------------------------
+  // if bitPSDAT is hi, OR accum LSB hi
+  // else leave accum LSB low
+  // Display accum to console in BIN, HEX, and DEC forms.
+  
+  byte accum = 0;
+  boolean bitPSDAT;
+  
+  
+  Serial.println();
+  Serial.print("Switches (BIN): "); Serial.println(accum,BIN);
+  Serial.print("Switches (HEX): "); Serial.println(accum,HEX);
+  Serial.print("Switches (DEC): "); Serial.println(accum,DEC);  
+}
+
+//***********************************************************************************
+void transferSwitch2LED(void)
+{
+  // Load the parallel shift register.
+  // Loop 8X:
+  //    read parallel MSB
+  //    copy to serial LSB
+  //    pulse CLK
+  // Leave SPDAT LOW to keep LED-D (LED10) off.
+  
+}
+
+//***********************************************************************************
+void loadParallelShiftReg(void)
+{
+  // Pull PSnPE LOW to enable parallel load of the 74HC166.
+  // Create a rising edge on CLK by first writing it LOW, then HIGH.
+  // Leave function with CLK LOW so that LED9 is off.
+  // Leave function with PSnPE HIGH to enable serial shift.
+
+}
+
+//***********************************************************************************
+void pulseClk(void)
+{
+  // Pulse CLK: LOW, HIGH, LOW to get guaranteed rising edge
+  // and leave function with LED-C off.
+  digitalWrite(CLK,LOW);
+  digitalWrite(CLK,HIGH);
+  digitalWrite(SPDAT,LOW);
+}
+
+//***********************************************************************************
+void displayBeepPin(int beepPin)
+{
+  // Report speaker drive configuration (SPKRA, SPKRB, DISABLED) to console. 
+  switch (beepPin) {
+    case (SPKA): Serial.println(F("Speaker drive from SPKA pin.")); break;
+    case (SPKB): Serial.println(F("Speaker drive from SPKB pin.")); break;
+    default:     Serial.println(F("Speaker drive DISABLED at jumper block."));
+  } 
+}
+
+//***********************************************************************************
+int fetchActiveBeepPin(void)
+{
+  // Determine switchblock signal routing. Speaker/resistor will pull down
+  // soft pullup of digital I/O.
+  //    Configure SPKR drive pins as pulled up inputs.
+  //    Read pin levels.
+  //    If a pin is high, it is not connected: leave as input.
+  //    If a pin is low it is connected. tone() will configure it for output.
+  //    Return SPKA, SPKB or -1, depending on discovery
+  
+  int beepPin = SPKA;
+ 
+  pinMode(SPKA, INPUT_PULLUP);
+  pinMode(SPKB, INPUT_PULLUP);
+  if(!digitalRead(SPKA)) {
+    beepPin = SPKA;
+  }
+  else if(!digitalRead(SPKB)){
+    beepPin = SPKB;
+  }
+  else {
+    beepPin = -1;
+  }
+  
+  return beepPin;
+}
+
+//*******************************************************************************************
+void configureShiftRegisterBoardPins(void)
+{   
+  // PSnPE and RCDAT share output on dig_10
+  // Use pin names per schematic.
+  // Schematic inputs are uC outputs.
+  // Init outputs to benign levels (usually LOW)
+  // Schematic outputs are uC inputs.
+  // Assign pullups (INPUT_PULLUP) to indeterminate or unattached inputs.
+  
+  pinMode(SW1, INPUT_PULLUP);  // SPST active low pushbutton
+  pinMode(SW2, INPUT_PULLUP);  // SPST active low pushbutton
+  pinMode(SPKA, INPUT_PULLUP); // I/O pin speaker drive connection sense
+  pinMode(SPKB, INPUT_PULLUP); // I/O pin speaker drive connection sense
+
+  pinMode(CLK, OUTPUT);    digitalWrite(CLK, LOW);      // S2P and P2S clock
+  pinMode(SPDAT, OUTPUT);  digitalWrite(SPDAT, LOW);    // serial to parallel data
+
+}
+
