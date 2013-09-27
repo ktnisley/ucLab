@@ -38,10 +38,10 @@ void loop()
   //tone only when SW1 is pushed
   if (isSw1Down){
    tone(beepPin,880);
-   prevBeepPin = beepPin;
    if (beepPin != prevBeepPin){
      displayBeepPin(beepPin);
    }
+   prevBeepPin = beepPin;
   }
   else noTone(beepPin);
  
