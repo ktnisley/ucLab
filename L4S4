@@ -1,4 +1,3 @@
-
 #define CLK 13    // PORTB5
 #define SPDAT 11  // PORTB3
 #define SW1 4     // PORTD4
@@ -32,23 +31,14 @@ void loop()
   isSw1Down = !digitalRead(SW1);  // convert switch active low to active high
   isSw1Dn2Up = (isSw1Down && !prevIsSw1Down);
   isSw1Up2Dn = (!isSw1Down && prevIsSw1Down);
-//  prevBeepPin = beepPin;
   
   //set speaker assignment
   beepPin = fetchActiveBeepPin();
   
-  //report speaker assignment only if changed AND only on switch press
-  Serial.println(isSw1Dn2Up);
-  if ((beepPin != prevBeepPin)){
-    if(isSw1Up2Dn){
-      displayBeepPin(beepPin);
-    }
-  }
-  
   //tone only when SW1 is pushed
   if (isSw1Down){
-   prevBeepPin = beepPin;
    tone(beepPin,880);
+   prevBeepPin = beepPin;
    if (beepPin != prevBeepPin){
      displayBeepPin(beepPin);
    }
