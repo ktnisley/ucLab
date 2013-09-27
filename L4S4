@@ -21,6 +21,10 @@ void setup()
  
   Serial.begin(9600);
   Serial.println(F("SRB Speaker Drive Detect / DIP Switch Transfer"));
+  
+  beepPin = SPKA;
+  tone(beepPin,440);
+  delay(1000);
 }
 
 //***********************************************************************************
@@ -33,7 +37,9 @@ void loop()
   isSw1Up2Dn = (!isSw1Down && prevIsSw1Down);
   
   //set speaker assignment
-  beepPin = fetchActiveBeepPin();
+  if (isSw1Dn2Up){
+    beepPin = fetchActiveBeepPin();
+   }
   
   //tone only when SW1 is pushed
   if (isSw1Down){
